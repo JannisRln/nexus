@@ -396,6 +396,71 @@ describe('MessageManager interrupt flow', () => {
     expect(manager.getIsLoading()).toBe(false);
   });
 
+  it('reports the generation error even when both cleanup saves fail', async () => {
+    const conversation = createConversation({ messages: [] });
+    const mockChatService = createMockChatService({ conversation });
+    mockChatService.getConversation.mockImplementation(async () => conversation);
+    mockChatService.generateResponseStreaming.mockImplementation(async function* () {
+      throw new LLMProviderError('Provider unavailable.', 'google-gemini-cli', 'PROVIDER_ERROR');
+      yield undefined;
+    });
+    mockChatService.updateConversation.mockRejectedValue(new Error('Storage unavailable'));
+    const events = createGenerationEvents();
+    const manager = new MessageManager(
+      mockChatService as unknown as ChatService,
+      createMockBranchManager() as unknown as BranchManager,
+      events
+    );
+    const log = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    try {
+      await manager.sendMessage(conversation, 'Hello');
+    } finally {
+      log.mockRestore();
+    }
+
+    const placeholder = conversation.messages.find(message => message.role === 'assistant');
+    expect(mockChatService.updateConversation).toHaveBeenCalledTimes(2);
+    expect(placeholder?.state).toBe('invalid');
+    expect(placeholder?.isLoading).toBe(false);
+    expect(events.onStreamingUpdate).toHaveBeenCalledWith(placeholder?.id, '', true, false);
+    expect(events.onError).toHaveBeenCalledWith('Provider unavailable.');
+    expect(events.onLoadingStateChanged).toHaveBeenLastCalledWith(false);
+  });
+
+  it('finalizes the visible bubble when an API key error produces a failed terminal event', async () => {
+    const conversation = createConversation({ messages: [] });
+    const mockChatService = createMockChatService({ conversation });
+    mockChatService.getConversation.mockImplementation(async () => conversation);
+    mockChatService.generateResponseStreaming.mockImplementation(
+      (_conversationId: string, _message: string, options?: { messageId?: string }) => {
+        async function* stream() {
+          yield envelope(options?.messageId || 'msg_ai', {
+            type: 'turn.failed', error: { message: '401 invalid x-api-key' }
+          });
+        }
+        return stream();
+      }
+    );
+
+    const events = createGenerationEvents();
+    const manager = new MessageManager(
+      mockChatService as unknown as ChatService,
+      createMockBranchManager() as unknown as BranchManager,
+      events
+    );
+
+    await manager.sendMessage(conversation, 'Hello');
+
+    const placeholder = conversation.messages.find(message => message.role === 'assistant');
+    expect(placeholder?.isLoading).toBe(false);
+    expect(placeholder?.state).toBe('invalid');
+    expect(events.onStreamingUpdate).toHaveBeenCalledWith(placeholder?.id, '', true, false);
+    expect(events.onConversationUpdated).toHaveBeenCalledWith(conversation);
+    expect(events.onError).toHaveBeenCalledWith('401 invalid x-api-key');
+    expect(events.onLoadingStateChanged).toHaveBeenLastCalledWith(false);
+  });
+
   it('preserves partial content when a non-abort send error happens mid-stream', async () => {
     const conversation = createConversation({ messages: [] });
     const mockChatService = createMockChatService({ conversation });
@@ -405,9 +470,8 @@ describe('MessageManager interrupt flow', () => {
       (_conversationId: string, _userMessage: string, options?: { messageId?: string }) => {
         async function* stream() {
           yield envelope(options?.messageId || 'msg_ai', { type: 'assistant.delta', text: 'Partial answer' });
-          // Error after a token streamed: the first-token path already cleared
-          // isLoading; finalizeErroredPlaceholder is then a no-op, so partial
-          // content must survive.
+          // Error after a token streamed: isLoading is already false, but the
+          // active stream still needs to be finalized with its partial content.
           throw new LLMProviderError('Network dropped.', 'google-gemini-cli', 'PROVIDER_ERROR');
         }
         return stream();
@@ -426,6 +490,8 @@ describe('MessageManager interrupt flow', () => {
     const placeholder = conversation.messages.find(m => m.role === 'assistant');
     expect(placeholder?.content).toBe('Partial answer');
     expect(placeholder?.isLoading).toBe(false);
+    expect(placeholder?.state).toBe('invalid');
+    expect(events.onStreamingUpdate).toHaveBeenCalledWith(placeholder?.id, 'Partial answer', true, false);
     expect(events.onError).toHaveBeenCalledWith('Network dropped.');
     expect(manager.getIsLoading()).toBe(false);
   });

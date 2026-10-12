@@ -95,6 +95,7 @@ export class MessageManager {
     // Initialize extracted services with appropriate event mappings
     this.streamHandler = new MessageStreamHandler(chatService, {
       onStreamingUpdate: events.onStreamingUpdate,
+      onConversationUpdated: events.onConversationUpdated,
       onToolCallsDetected: events.onToolCallsDetected,
       onToolLimitReached: events.onToolLimitReached,
       onReasoningUpdate: events.onReasoningUpdate,
@@ -236,7 +237,11 @@ export class MessageManager {
         if (!wasAborted) {
           // Clear the assistant placeholder's loading spinner; a non-abort
           // error before the first token otherwise leaves it stuck (#271).
-          await this.abortHandler.finalizeErroredPlaceholder(conversation, aiMessageId);
+          try {
+            await this.abortHandler.finalizeErroredPlaceholder(conversation, aiMessageId);
+          } catch (cleanupError) {
+            console.error('[MessageManager] Failed to save errored message state:', cleanupError);
+          }
           this.events.onError(this.getUserVisibleErrorMessage(error, 'Failed to send message'));
         }
       } finally {
@@ -394,7 +399,11 @@ export class MessageManager {
       if (!wasAborted) {
         // Clear the assistant placeholder's loading spinner; a non-abort
         // error before the first token otherwise leaves it stuck (#271).
-        await this.abortHandler.finalizeErroredPlaceholder(conversation, erroredMessageId);
+        try {
+          await this.abortHandler.finalizeErroredPlaceholder(conversation, erroredMessageId);
+        } catch (cleanupError) {
+          console.error('[MessageManager] Failed to save errored message state:', cleanupError);
+        }
         this.events.onError(this.getUserVisibleErrorMessage(error, 'Failed to generate AI response'));
       }
     } finally {

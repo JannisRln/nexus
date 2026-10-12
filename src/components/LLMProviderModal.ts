@@ -61,6 +61,9 @@ export class LLMProviderModal extends Modal {
   private autoSaveTimeout: number | null = null;
   private statusResetTimeout: number | null = null;
   private saveStatusEl: HTMLElement | null = null;
+  private saveTail: Promise<void> = Promise.resolve();
+  private latestSaveId = 0;
+  private closed = false;
 
   constructor(app: App, config: LLMProviderModalConfig, providerManager: LLMProviderManager) {
     super(app);
@@ -70,6 +73,7 @@ export class LLMProviderModal extends Modal {
   }
 
   onOpen(): void {
+    this.closed = false;
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass('llm-provider-modal');
@@ -94,23 +98,29 @@ export class LLMProviderModal extends Modal {
   onClose(): void {
     const { contentEl } = this;
 
+    // Capture the final edit before destroying the provider UI. A pending
+    // debounce must still persist when the user closes the modal promptly.
+    if (this.autoSaveTimeout !== null) {
+      window.clearTimeout(this.autoSaveTimeout);
+      this.autoSaveTimeout = null;
+      const finalConfig = this.providerModal?.getConfig() ?? this.config.config;
+      void this.persistConfig(finalConfig);
+    }
+
     // Clean up provider modal
     if (this.providerModal) {
       this.providerModal.destroy();
       this.providerModal = null;
     }
 
-    // Clean up auto-save timeout
-    if (this.autoSaveTimeout) {
-      window.clearTimeout(this.autoSaveTimeout);
-      this.autoSaveTimeout = null;
-    }
     if (this.statusResetTimeout) {
       window.clearTimeout(this.statusResetTimeout);
       this.statusResetTimeout = null;
     }
 
     contentEl.empty();
+    this.saveStatusEl = null;
+    this.closed = true;
   }
 
   /**
@@ -172,7 +182,7 @@ export class LLMProviderModal extends Modal {
 
     // OAuth connections must save immediately — debounce gets cancelled by onClose
     if (config.oauth?.connected) {
-      if (this.autoSaveTimeout) {
+      if (this.autoSaveTimeout !== null) {
         window.clearTimeout(this.autoSaveTimeout);
         this.autoSaveTimeout = null;
       }
@@ -186,13 +196,14 @@ export class LLMProviderModal extends Modal {
    * Auto-save with debouncing and visual feedback
    */
   private autoSave(): void {
-    if (this.autoSaveTimeout) {
+    if (this.autoSaveTimeout !== null) {
       window.clearTimeout(this.autoSaveTimeout);
     }
 
     this.showSaveStatus('Saving...');
 
     this.autoSaveTimeout = window.setTimeout(() => {
+      this.autoSaveTimeout = null;
       // Get final config from provider modal
       if (this.providerModal) {
         this.config.config = this.providerModal.getConfig();
@@ -206,6 +217,10 @@ export class LLMProviderModal extends Modal {
    * Persist provider settings and update the footer status from the real result.
    */
   private async persistConfig(config: LLMProviderConfig): Promise<void> {
+    // Save snapshots in arrival order. A slow earlier write cannot finish
+    // after a newer key and replace it in persistent settings.
+    const snapshot = JSON.parse(JSON.stringify(config)) as LLMProviderConfig;
+    const saveId = ++this.latestSaveId;
     if (this.statusResetTimeout) {
       window.clearTimeout(this.statusResetTimeout);
       this.statusResetTimeout = null;
@@ -213,16 +228,22 @@ export class LLMProviderModal extends Modal {
 
     this.showSaveStatus('Saving...');
 
-    try {
-      await this.config.onSave(config);
-      this.showSaveStatus('Saved');
-      this.statusResetTimeout = window.setTimeout(() => {
-        this.showSaveStatus('Ready');
-        this.statusResetTimeout = null;
-      }, 2000);
-    } catch {
-      this.showSaveStatus('Save failed');
-    }
+    const save = this.saveTail.then(async () => {
+      try {
+        await this.config.onSave(snapshot);
+        if (saveId === this.latestSaveId && !this.closed) {
+          this.showSaveStatus('Saved');
+          this.statusResetTimeout = window.setTimeout(() => {
+            this.showSaveStatus('Ready');
+            this.statusResetTimeout = null;
+          }, 2000);
+        }
+      } catch {
+        if (saveId === this.latestSaveId && !this.closed) this.showSaveStatus('Save failed');
+      }
+    });
+    this.saveTail = save;
+    await save;
   }
 
   /**

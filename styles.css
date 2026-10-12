@@ -3193,6 +3193,42 @@ body.is-mobile .nexus-compatible-modal button {
     color: var(--text-normal);
 }
 
+.llm-provider-modal .llm-provider-key-setting .llm-provider-input {
+    min-width: 0;
+}
+
+.llm-provider-modal .llm-provider-key-setting .setting-item-control > button {
+    flex: 0 0 auto;
+    width: auto;
+}
+
+body.is-mobile .llm-provider-modal .llm-provider-key-setting {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+body.is-mobile .llm-provider-modal .llm-provider-key-setting .setting-item-control {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: var(--space-s);
+}
+
+body.is-mobile .llm-provider-modal .llm-provider-key-setting .llm-provider-input {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-height: 44px;
+}
+
+body.is-mobile .llm-provider-modal .llm-provider-key-setting .setting-item-control > button {
+    align-self: flex-start;
+    max-width: 100%;
+    min-height: 44px;
+}
+
 .llm-provider-input.validating {
     border-color: var(--color-yellow);
     background-color: color-mix(in srgb, var(--color-yellow) 20%, transparent);

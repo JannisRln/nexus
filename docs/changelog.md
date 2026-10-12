@@ -2,6 +2,18 @@
 
 ## October 2026
 
+**v5.20.2** — Safer context changes, live cost updates, steadier thinking, and easier mobile key entry
+
+- The **Context window** slider remembers a budget for each provider and model. Switching to a smaller window, or lowering the current model's budget, prepares a compacted conversation before continuing. If the conversation still cannot fit, the send stops and preserves your draft ([#410](https://github.com/ProfSynapse/nexus/pull/410)).
+- The money counter updates as providers report usage, including between tool calls. Anthropic cache reads and writes use separate rates, Gemini thinking tokens count toward output cost, and OpenRouter's reported cost takes precedence when available. Reported Anthropic and OpenAI search calls are included; Google grounding charges and account-specific discounts are not estimated ([#410](https://github.com/ProfSynapse/nexus/pull/410)).
+- **Web search** is available in native chat for supported Anthropic, OpenAI, OpenRouter and Gemini 3+ models, with sources shown alongside the reply ([#410](https://github.com/ProfSynapse/nexus/pull/410)).
+- Thinking stays open between tool calls unless you choose otherwise, extra blank lines collapse for display, and automatic scrolling respects when you scroll up. The effort label updates while you drag its slider ([#410](https://github.com/ProfSynapse/nexus/pull/410)).
+- Long tool runs pause after 25 calls and offer **Continue** or **Stop**, so you can decide whether to let the work carry on ([#409](https://github.com/ProfSynapse/nexus/pull/409)).
+- On mobile, provider API keys have a full-width input with a smaller **Get key** button below it. Key edits are saved when you close settings, surrounding whitespace is removed, and an older validation result cannot overwrite a newer edit.
+- Failed chat requests stop the loading animation, including failures after a partial reply and failures while saving the interrupted turn.
+
+---
+
 **v5.20.1** — More reliable tool calls and cache saves, roomier thinking, and new Claude and Mistral models
 
 - Malformed tool arguments now return an error the model can correct instead of crashing the tool follow-up. Successful calls are not run again.

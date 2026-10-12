@@ -107,3 +107,9 @@ to 0). Edit `.skills/` and run `npm run sync:skills`; never edit a mirror. |
 ## 2026-10-09 — Adversarial handoff follow-up
 - Observation: green first-compaction tests missed boundary loss on frontier merge, backwards compaction after a handoff, and stale provider replay metadata during cross-provider retry.
 - Change: added repeated-compaction and replay-replacement checks to references/chat-plumbing.md; regressions exercise actual metadata, filtering, and provider message construction.
+
+- 2026-10-10 | Investigated an iOS Anthropic 401: the buffered transport forwards the configured API-key header, and secure key storage is opt-in and device-local. Credential origin and the full device error remain unconfirmed. | No procedure change; do not record a suspected credential problem as a confirmed adapter defect.
+
+- 2026-10-10 | Follow-up iOS report ruled out relying on a synced key: a newly entered key was rejected while desktop worked. Investigation found validation trims the key but outer autosave could restore raw input, and closing the provider dialog could drop pending edits. | Trace credentials through validation and the final getConfig/save boundary; the exact on-device cause still requires a retest.
+
+- 2026-10-10 | User confirmed authentication works after replacing the key correctly; tiny mobile input likely contributed to appending credentials. | No Anthropic transport change. Independent, reproduced modal-save and failed-turn UI defects were fixed at their owning layers.

@@ -90,3 +90,7 @@ skill.
 - 2026-10-07 | Remote-agent implementation added no Node dependency to the mobile runtime; static reachability check passed. | No procedure change; physical-device behavior remains unverified.
 
 - 2026-10-07 | New OpenClaw transport uses native WebSocket, WebCrypto and IndexedDB with no Node imports or npm dependency. Reachability check is clean; actual Obsidian signed pairing passes, physical mobile remains unverified. | No change to procedure.
+
+- 2026-10-10 | An iOS chat request reached HTTP 401, so the plugin loaded and this was a runtime authentication investigation. The mobile reachability gate passed; this does not validate device credentials or the native request bridge. | No procedure change.
+
+- 2026-10-10 | User resolved the iOS 401 after replacing the key; the key input was compressed beside a full-width Get key button and may have appended to the existing value. | Scoped the existing API-key setting with a mobile full-width input and compact button below it; no transport workaround needed. On-device layout retest remains separate.

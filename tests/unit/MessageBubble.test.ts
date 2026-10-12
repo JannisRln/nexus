@@ -439,6 +439,21 @@ describe('MessageBubble', () => {
     expect(block().open).toBe(false);
   });
 
+  it('closes a partial Thinking block when a failed turn is reconciled', () => {
+    const message = createAssistantMessage({
+      content: 'Partial answer', state: 'streaming', isLoading: false, reasoning: 'Partial thought'
+    });
+    const bubble = new MessageBubble(message, app, jest.fn(), jest.fn());
+    activeBubble = bubble;
+    const root = bubble.createElement() as MockElement;
+    const block = () => collectBySelector(root, '.message-reasoning')[0] as unknown as HTMLDetailsElement;
+    expect(block().open).toBe(true);
+
+    bubble.updateWithNewMessage({ ...message, state: 'invalid', isLoading: false });
+
+    expect(block().open).toBe(false);
+  });
+
   it('preserves a manual collapse even when a token arrives before the native toggle event', () => {
     const message = createAssistantMessage({ content: '', state: 'streaming', reasoning: 'First thought' });
     const bubble = new MessageBubble(message, app, jest.fn(), jest.fn());

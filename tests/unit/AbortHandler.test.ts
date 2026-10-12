@@ -344,6 +344,7 @@ describe('AbortHandler', () => {
       expect(aiMessage?.state).toBe('invalid');
       // Persists so a reload cannot resurrect the stuck loading state.
       expect(mockChatService.updateConversation).toHaveBeenCalled();
+      expect(events.onStreamingUpdate).toHaveBeenCalledWith('msg_ai', '', true, false);
       expect(events.onConversationUpdated).toHaveBeenCalled();
     });
 
@@ -367,7 +368,43 @@ describe('AbortHandler', () => {
       expect(aiMessage?.isLoading).toBe(false);
     });
 
-    it('is a no-op when the spinner was already cleared', async () => {
+    it('finalizes a partial stream after the first token cleared its spinner', async () => {
+      const conversation = createConversation({
+        messages: [
+          createUserMessage(),
+          createAssistantMessage({
+            id: 'msg_ai', content: 'partial answer', isLoading: false, state: 'streaming'
+          })
+        ]
+      });
+
+      await handler.finalizeErroredPlaceholder(conversation, 'msg_ai');
+
+      expect(conversation.messages.find(m => m.id === 'msg_ai')?.state).toBe('invalid');
+      expect(events.onStreamingUpdate).toHaveBeenCalledWith('msg_ai', 'partial answer', true, false);
+      expect(events.onConversationUpdated).toHaveBeenCalled();
+    });
+
+    it('stops the visible loader even when saving the failed state rejects', async () => {
+      const conversation = createConversation({
+        messages: [
+          createUserMessage(),
+          createAssistantMessage({
+            id: 'msg_ai', content: '', isLoading: true, state: 'draft'
+          })
+        ]
+      });
+      mockChatService.updateConversation.mockRejectedValueOnce(new Error('Storage unavailable'));
+
+      await expect(handler.finalizeErroredPlaceholder(conversation, 'msg_ai'))
+        .rejects.toThrow('Storage unavailable');
+
+      expect(events.onStreamingUpdate).toHaveBeenCalledWith('msg_ai', '', true, false);
+      expect(events.onConversationUpdated).toHaveBeenCalledWith(conversation);
+      expect(conversation.messages.find(m => m.id === 'msg_ai')?.state).toBe('invalid');
+    });
+
+    it('is a no-op when the message already completed', async () => {
       const conversation = createConversation({
         messages: [
           createUserMessage(),

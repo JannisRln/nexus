@@ -26,6 +26,7 @@ import {
 
 export interface StreamHandlerEvents {
   onStreamingUpdate: (messageId: string, content: string, isComplete: boolean, isIncremental?: boolean) => void;
+  onConversationUpdated?: (conversation: ConversationData) => void;
   onToolCallsDetected: (messageId: string, toolCalls: ConversationToolCall[]) => void;
   onCostUpdate?: () => void;
   onToolLimitReached?: (completedToolCalls: number, abortSignal?: AbortSignal) => Promise<boolean>;
@@ -238,6 +239,15 @@ export class MessageStreamHandler {
             usage: finalUsage,
           };
         }
+        if (event.type === 'turn.failed') {
+          // The producer already persisted the failed state, but the visible
+          // bubble still holds its pre-token loader (or an open text parser).
+          // Finalize that UI stream before the error is reported upstream.
+          this.events.onStreamingUpdate(aiMessageId, streamedContent, true, false);
+          // The bubble still holds the pre-terminal message snapshot. Reconcile
+          // its state so a partial Thinking block closes on failure as well.
+          this.events.onConversationUpdated?.(conversation);
+        }
         sawTerminalEvent = true;
         onTerminalEvent?.();
       }
@@ -305,7 +315,11 @@ export class MessageStreamHandler {
       // Terminal abort/failure events were also persisted by the producer.
       // Only errors before a terminal event need this UI snapshot saved.
       if (!sawTerminalEvent) {
-        await this.chatService.updateConversation(conversation);
+        try {
+          await this.chatService.updateConversation(conversation);
+        } catch (saveError) {
+          console.error('[MessageStreamHandler] Failed to save partial response:', saveError);
+        }
       }
       throw error;
     }

@@ -51,7 +51,7 @@ Mobile support is new and may have bugs. Please [report issues on GitHub](https:
 
 **Nexus does not call out on its own.** Nothing is sent when the plugin loads unless you have enabled a remote agent (see below), and there is no telemetry, analytics, crash reporting, or usage tracking of any kind. Your notes stay in your vault unless you do something that sends them somewhere. Every request below is listed with the action that causes it.
 
-**AI provider APIs.** Contacted only once you enter that provider's API key and then use it. Your prompt — and whatever vault content the agent decides to include — goes to the provider you chose, and your key is only ever sent to the provider it belongs to.
+**AI provider APIs.** Entering or replacing an API key starts an automatic validation request after you stop typing. Using a provider then sends your prompt — and whatever vault content the agent decides to include — to that provider. Your key is only ever sent to the provider it belongs to.
 
 | | |
 |---|---|

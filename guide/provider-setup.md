@@ -37,8 +37,10 @@ For Anthropic, OpenAI, Google AI, Groq, Mistral, OpenRouter, Perplexity, and Req
 1. Open **Settings -> Nexus -> Providers**
 2. Select the provider
 3. Paste your API key
-4. Save or validate the connection if the provider offers validation
+4. Wait for automatic key validation to finish
 5. Open Nexus chat and select one of that provider's models
+
+Key edits save automatically, including when you close the configuration window. A new connection is enabled after validation succeeds. To replace a key, select the entire existing value before pasting; surrounding whitespace is removed automatically. On mobile, the input fills its own row, with **Get key** below it.
 
 If you want the simplest setup, an API key provider is usually the fastest path.
 

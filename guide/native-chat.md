@@ -33,6 +33,8 @@ When the AI uses tools during a conversation, you see them as collapsible panels
 
 If a model sends malformed tool arguments, Nexus returns an error that lets it correct that call and continue. Calls that already succeeded are not repeated.
 
+After 25 tool calls, Nexus pauses and offers **Continue** or **Stop**. Continue allows the run to carry on; Stop ends it while keeping the work completed so far.
+
 ## Thinking and model selection
 
 Thinking for a reply appears in one collapsible **Thinking** block, including reasoning between tool calls. In chat settings or **Settings &rarr; Nexus &rarr; Defaults**, the effort slider offers **Low**, **Medium**, **High**, **Extra high** and **Max** when the model supports thinking. Nexus maps these choices to the effort levels the provider accepts; some models support only one enabled level.

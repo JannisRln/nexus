@@ -23,9 +23,7 @@ jest.mock('obsidian', () => {
 });
 
 jest.mock('../../src/services/llm/validation/ValidationService', () => ({
-  LLMValidationService: jest.fn().mockImplementation(() => ({
-    validateProvider: jest.fn().mockResolvedValue({ valid: true }),
-  })),
+  LLMValidationService: { validateApiKey: jest.fn() },
 }));
 
 jest.mock('../../src/services/oauth/OAuthFlowManager', () => ({
@@ -42,6 +40,7 @@ jest.mock('../../src/utils/pluginLocator', () => ({
 
 import { App } from 'obsidian';
 import { GenericProviderModal } from '../../src/components/llm-provider/providers/GenericProviderModal';
+import { LLMValidationService } from '../../src/services/llm/validation/ValidationService';
 import type { ProviderModalConfig, ProviderModalDependencies } from '../../src/components/llm-provider/types';
 
 type Deferred<T> = {
@@ -148,5 +147,71 @@ describe('GenericProviderModal secondary save behavior', () => {
       apiKey: '',
     });
     expect(noticeMock).not.toHaveBeenCalledWith('Gemini CLI authenticated');
+  });
+});
+
+describe('GenericProviderModal API key edits', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  it('preserves the enabled choice while saving a normalized replacement key', () => {
+    const config = createConfig(jest.fn());
+    config.config.apiKey = 'old-key';
+    const modal = new GenericProviderModal(config, createDeps());
+    (modal as unknown as { apiKey: string }).apiKey = ' new-key ';
+    (modal as unknown as { handleApiKeyChange: (value: string) => void }).handleApiKeyChange(' new-key ');
+
+    expect(config.onConfigChange).toHaveBeenCalledWith(expect.objectContaining({
+      enabled: true,
+      apiKey: 'new-key',
+    }));
+    expect(modal.getConfig()).toEqual(expect.objectContaining({ apiKey: 'new-key', enabled: true }));
+  });
+
+  it('ignores a stale validation result after another key edit', async () => {
+    const deferred = createDeferred<{ success: boolean }>();
+    jest.mocked(LLMValidationService.validateApiKey).mockReturnValueOnce(deferred.promise);
+    const config = createConfig(jest.fn());
+    config.config.enabled = false;
+    const modal = new GenericProviderModal(config, createDeps());
+    (modal as unknown as { apiKey: string }).apiKey = 'first-key';
+    const validating = (modal as unknown as { validateApiKey: () => Promise<void> }).validateApiKey();
+    (modal as unknown as { apiKey: string }).apiKey = 'second-key';
+    (modal as unknown as { handleApiKeyChange: (value: string) => void }).handleApiKeyChange('second-key');
+
+    deferred.resolve({ success: true });
+    await validating;
+
+    expect(modal.getConfig()).toEqual(expect.objectContaining({ apiKey: 'second-key', enabled: false }));
+    expect(config.onConfigChange).not.toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
+  });
+
+  it('keeps an invalid edited key disabled after validation fails', async () => {
+    jest.mocked(LLMValidationService.validateApiKey).mockResolvedValue({ success: false, error: 'invalid x-api-key' });
+    const config = createConfig(jest.fn());
+    config.config.enabled = false;
+    const modal = new GenericProviderModal(config, createDeps());
+    (modal as unknown as { handleApiKeyChange: (value: string) => void }).handleApiKeyChange('invalid-key');
+
+    await (modal as unknown as { validateApiKey: () => Promise<void> }).validateApiKey();
+
+    expect(modal.getConfig()).toEqual(expect.objectContaining({ apiKey: 'invalid-key', enabled: false }));
+    expect(config.onConfigChange).not.toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
+  });
+
+  it('normalizes a legacy loaded key before validation and saving', async () => {
+    jest.mocked(LLMValidationService.validateApiKey).mockResolvedValue({ success: true });
+    const config = createConfig(jest.fn());
+    config.config.apiKey = '  legacy-key  ';
+    const modal = new GenericProviderModal(config, createDeps());
+
+    await (modal as unknown as { validateApiKey: () => Promise<void> }).validateApiKey();
+
+    expect(LLMValidationService.validateApiKey).toHaveBeenCalledWith('google', 'legacy-key', expect.anything());
+    expect(modal.getConfig()).toEqual(expect.objectContaining({ apiKey: 'legacy-key' }));
   });
 });

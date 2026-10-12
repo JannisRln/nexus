@@ -121,6 +121,13 @@ first, and on a case-insensitive filesystem that name resolves to the Electron
 GUI binary, which half-answers and intermittently returns empty output — a
 false `SKIPPED` or a hang, not a verification.
 
+On Windows, also look for `Obsidian.com` beside `Obsidian.exe` when the CLI is
+missing from PATH. Run its `help` command first: if it reports that the CLI is
+disabled, enable **Settings → General → Advanced → Command line interface**.
+Point `NEXUS_OBSIDIAN_CLI` at the `.com` binary. A verified example for this
+script's Windows shell wrapper is `C:/PROGRA~1/Obsidian/Obsidian.com`; check that
+the short path exists on the current machine rather than assuming it does.
+
 `--skip-build` reuses the bundle step 6 just produced. It reloads the plugin,
 fails on a non-empty `dev:errors`, and drops a screenshot in `test-artifacts/`.
 

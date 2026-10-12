@@ -262,6 +262,11 @@ describe('MessageStreamHandler - isLoading clearing (issue #271 claim b)', () =>
 
   it('does not save a stale UI snapshot after a persisted failed terminal event', async () => {
     const conversation = conversationWithLoadingPlaceholder();
+    const visibleStates: Array<{ state: string | undefined; isLoading: boolean | undefined }> = [];
+    events.onConversationUpdated = () => {
+      const message = conversation.messages.find(item => item.id === 'msg_ai');
+      visibleStates.push({ state: message?.state, isLoading: message?.isLoading });
+    };
     mockChatService.generateResponseStreaming.mockImplementation(streamOf([
       { type: 'assistant.delta', text: 'partial' },
       { type: 'turn.failed', error: { message: 'provider failed' } },
@@ -271,5 +276,25 @@ describe('MessageStreamHandler - isLoading clearing (issue #271 claim b)', () =>
 
     expect(mockChatService.updateConversation).not.toHaveBeenCalled();
     expect(conversation.messages.find(message => message.id === 'msg_ai')?.state).toBe('invalid');
+    expect(visibleStates).toEqual([{ state: 'invalid', isLoading: false }]);
+    expect(events.onStreamingUpdate).toHaveBeenLastCalledWith('msg_ai', 'partial', true, false);
+  });
+
+  it('preserves the generation error if saving a partial response fails', async () => {
+    const conversation = conversationWithLoadingPlaceholder();
+    mockChatService.generateResponseStreaming.mockImplementation(async function* () {
+      yield { messageId: 'msg_ai', event: { type: 'assistant.delta' as const, text: 'partial' } };
+      throw new Error('provider disconnected');
+    });
+    mockChatService.updateConversation.mockRejectedValue(new Error('storage unavailable'));
+    const log = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    try {
+      await expect(handler.streamAndSave(conversation, 'hi', 'msg_ai', {}))
+        .rejects.toThrow('provider disconnected');
+      expect(mockChatService.updateConversation).toHaveBeenCalledTimes(1);
+    } finally {
+      log.mockRestore();
+    }
   });
 });

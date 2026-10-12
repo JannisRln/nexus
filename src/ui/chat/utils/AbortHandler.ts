@@ -112,13 +112,9 @@ export class AbortHandler {
   /**
    * Finalize the assistant placeholder after a NON-abort generation error.
    *
-   * Without this, an error (or empty completion) that happens before the first
-   * token leaves the placeholder with isLoading:true — isLoading is otherwise
-   * only cleared on the first streamed token — so the chat spinner spins
-   * forever (issue #271, claim b). This clears isLoading and marks the message
-   * invalid (filtered from future context), preserving any partial content
-   * already streamed. The genuine-abort path is handled separately by
-   * handleAbort and is intentionally left untouched.
+   * Clear a pre-token loader or finalize a partial stream after an unexpected
+   * error. Both paths mark the message invalid, preserve partial content, and
+   * notify the UI so its animation and streaming parser stop.
    *
    * @param conversation - The conversation containing the placeholder
    * @param aiMessageId - ID of the AI message being generated (may be null)
@@ -134,17 +130,20 @@ export class AbortHandler {
 
     const aiMessage = conversation.messages[aiMessageIndex];
 
-    // Nothing to do if the spinner was already cleared (e.g. content streamed
-    // before the error). Leave a completed/aborted message as-is.
-    if (aiMessage.isLoading !== true) return;
+    // A first token clears isLoading but leaves state='streaming'. That stream
+    // still needs terminal UI cleanup. Persisted terminal states need no work.
+    if (aiMessage.isLoading !== true && aiMessage.state !== 'streaming') return;
 
     aiMessage.isLoading = false;
     aiMessage.state = 'invalid'; // Errored before completion - exclude from context
 
+    // Stop the visible loader even if persistence fails. The failed save is
+    // still surfaced to the caller after the UI has reached its terminal state.
+    this.events.onStreamingUpdate(aiMessageId, aiMessage.content, true, false);
+    // Re-render so the failed state and removed spinner appear immediately.
+    this.events.onConversationUpdated(conversation);
+
     // Persist so a reload doesn't resurrect the stuck loading state.
     await this.chatService.updateConversation(conversation);
-
-    // Re-render so the spinner disappears immediately.
-    this.events.onConversationUpdated(conversation);
   }
 }

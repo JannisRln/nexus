@@ -42,6 +42,8 @@ export class GenericProviderModal implements IProviderModal {
   private models: ModelWithProvider[] = [];
   private isValidated = false;
   private validationTimeout: number | null = null;
+  private validationRevision = 0;
+  private destroyed = false;
 
   // OAuth flow managers
   private primaryFlowManager: OAuthFlowManager | null = null;
@@ -53,7 +55,7 @@ export class GenericProviderModal implements IProviderModal {
     const primaryOAuthConfig = this.config.oauthConfig;
 
     // Initialize from existing config
-    this.apiKey = config.config.apiKey || '';
+    this.apiKey = (config.config.apiKey || '').trim();
 
     // Set up primary OAuth flow manager
     if (primaryOAuthConfig) {
@@ -186,17 +188,21 @@ export class GenericProviderModal implements IProviderModal {
     if (this.config.oauthOnly) return;
 
     new Setting(container)
+      .setClass('llm-provider-key-setting')
       .setDesc(`Enter your ${this.config.providerName} API key (format: ${this.config.keyFormat})`)
       .addText(text => {
         this.apiKeyInput = text.inputEl;
         this.apiKeyInput.type = 'password';
         this.apiKeyInput.addClass('llm-provider-input');
+        this.apiKeyInput.setAttribute('aria-label', `${this.config.providerName} API key`);
+        this.apiKeyInput.setAttribute('autocapitalize', 'none');
+        this.apiKeyInput.setAttribute('autocorrect', 'off');
+        this.apiKeyInput.spellcheck = false;
 
         text
           .setPlaceholder(`Enter your ${this.config.providerName} API key`)
           .setValue(this.apiKey)
           .onChange(value => {
-            this.apiKey = value;
             this.handleApiKeyChange(value);
           });
       })
@@ -375,6 +381,12 @@ export class GenericProviderModal implements IProviderModal {
    * Handle API key input changes
    */
   private handleApiKeyChange(value: string): void {
+    this.validationRevision++;
+    this.apiKey = value.trim();
+    this.config.config.apiKey = this.apiKey;
+    // Preserve the user's enabled choice for a nonempty replacement. An
+    // initially disabled provider is enabled only after validation succeeds.
+    if (!this.apiKey) this.config.config.enabled = false;
     this.isValidated = false;
 
     if (this.apiKeyInput) {
@@ -398,7 +410,9 @@ export class GenericProviderModal implements IProviderModal {
       this.validationTimeout = null;
     }
 
-    if (value.trim()) {
+    this.saveConfig();
+
+    if (this.apiKey) {
       this.apiKeyInput?.addClass('validating');
 
       // Auto-validate after delay
@@ -406,11 +420,6 @@ export class GenericProviderModal implements IProviderModal {
         void this.validateApiKey();
       }, 2000);
 
-      // Auto-enable
-      if (!this.config.config.enabled) {
-        this.config.config.enabled = true;
-        this.saveConfig();
-      }
     } else {
       this.apiKeyInput?.removeClass('validating');
     }
@@ -504,6 +513,7 @@ export class GenericProviderModal implements IProviderModal {
    */
   private async validateApiKey(): Promise<void> {
     const apiKey = this.apiKey.trim();
+    const revision = this.validationRevision;
 
     if (!apiKey) {
       new Notice('Please enter an API key first');
@@ -515,6 +525,7 @@ export class GenericProviderModal implements IProviderModal {
     this.apiKeyInput?.addClass('validating');
 
     try {
+      let validationRecord: { hash: string; timestamp: number } | undefined;
       const result = await LLMValidationService.validateApiKey(
         this.config.providerId,
         apiKey,
@@ -522,13 +533,18 @@ export class GenericProviderModal implements IProviderModal {
           forceValidation: true,
           providerConfig: this.config.config,
           onValidationSuccess: (hash: string, timestamp: number) => {
-            this.config.config.lastValidated = timestamp;
-            this.config.config.validationHash = hash;
+            validationRecord = { hash, timestamp };
           }
         }
       );
 
+      if (this.destroyed || revision !== this.validationRevision) return;
+
       if (result.success) {
+        if (validationRecord) {
+          this.config.config.lastValidated = validationRecord.timestamp;
+          this.config.config.validationHash = validationRecord.hash;
+        }
         this.isValidated = true;
         this.apiKeyInput?.removeClass('validating');
         this.apiKeyInput?.removeClass('error');
@@ -544,6 +560,7 @@ export class GenericProviderModal implements IProviderModal {
       }
 
     } catch (error) {
+      if (this.destroyed || revision !== this.validationRevision) return;
       console.error('[GenericProvider] Validation failed:', error);
 
       this.isValidated = false;
@@ -621,7 +638,7 @@ export class GenericProviderModal implements IProviderModal {
   getConfig(): import('../../../types').LLMProviderConfig {
     return {
       ...this.config.config,
-      apiKey: this.apiKey,
+      apiKey: this.apiKey.trim(),
     };
   }
 
@@ -629,6 +646,8 @@ export class GenericProviderModal implements IProviderModal {
    * Clean up resources
    */
   destroy(): void {
+    this.destroyed = true;
+    this.validationRevision++;
     if (this.validationTimeout) {
       window.clearTimeout(this.validationTimeout);
       this.validationTimeout = null;

@@ -111,3 +111,9 @@ byte-identical to upstream #406 and was dropped before the pull. | Added README
 **Network Use** to doc-review's surface table, with what to look for (new hosts,
 user-entered URLs, requests without a user action) and a grep to find them.
 | `protocols/doc-review.md`.
+
+2026-10-12 | Preparing 5.20.2: the Obsidian CLI existed outside PATH and was
+disabled, so the earlier availability probe had skipped a usable desktop app.
+After the user enabled it, an explicit Obsidian.com path passed the running-app
+verification. | Added Windows binary discovery and CLI-toggle guidance to the
+release verification step. | `protocols/cut-release.md`.
