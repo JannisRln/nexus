@@ -40,3 +40,5 @@ their tools appear in no export.
 - 2026-10-07 | Rebase overlapped generated catalogs from instruction-library and remote-delegation changes. Regenerating the combined live registry resolved conflicts and catalog/consumer checks passed. | No procedure change; refresh-catalog already forbids hand-patching generated JSON.
 
 - 2026-10-13 | Patch-release lifecycle regenerated both versioned exports and compatibility aliases; catalog validation and full-suite guidance/drift tests passed without tool-payload changes. | No protocol change.
+
+- 2026-10-13 | Release preparation regenerated the versioned CLI/MCP bundle through the version lifecycle; compatibility aliases and schema validation stayed consistent. | No protocol change needed.

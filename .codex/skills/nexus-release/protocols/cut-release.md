@@ -58,6 +58,15 @@ do not hand-revert it, or the next bump churns it again.
 - Do NOT hand-edit `manifest.json` or `versions.json`. Hand-editing is how the
   lockfile version drifted from `package.json` in this repo, and how a
   `versions.json` entry gets forgotten — which the workflow guard rejects.
+- If the machine policy requires pnpm, use its version command with
+  `--no-git-tag-version` (and `--no-git-checks` for reviewed documentation
+  changes). Verify that the repository version lifecycle ran. In pnpm 12,
+  this updates the manifest and catalogs but leaves the npm lockfile's root
+  versions unchanged: align only `package-lock.json`'s top-level `version`
+  and `packages[""].version`, and inspect the diff for dependency drift.
+  Temporary pnpm lock/workspace files used to install from the npm lockfile
+  are local tooling, not a package-manager migration. Record the installation
+  method and any difference from the release workflow's Node/npm environment.
 - Only raise `minAppVersion` in `manifest.json` if the release genuinely requires
   a newer Obsidian. Bump it *before* this step so the new `versions.json` entry
   picks up the right value.

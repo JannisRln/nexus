@@ -44,6 +44,8 @@ Key edits save automatically, including when you close the configuration window.
 
 If you want the simplest setup, an API key provider is usually the fastest path.
 
+Google AI includes **Gemini 4 Argon** in its model picker, with streaming responses, reasoning controls and Nexus tool calling. Select it after configuring your Google AI API key; model availability depends on your provider account.
+
 ### Settings across devices
 
 With Nexus 5.20.3 or later on every device, background workflow checks preserve newer synced settings, and Nexus applies incoming provider settings without a restart. Other settings, such as the storage location, require reloading Nexus. Allow your sync service to finish before expecting another device to use an updated key. Simultaneous edits to the same setting still follow your sync service's conflict rules.
@@ -70,7 +72,7 @@ By default, API keys live in the plugin's settings file (`data.json`), which syn
 3. In Nexus, open **Settings -> Providers -> LM Studio**
 4. Confirm the local endpoint and choose a model in chat
 
-Both local runtimes support **tool calling**, so a capable local model can drive agentic chats (Ollama also auto-discovers every model you have installed). For reasoning models, thinking streams live into a collapsible **Thinking** block in chat and is available in the tool-inspection view.
+Both local runtimes support **tool calling**, so a capable local model can drive agentic chats (Ollama also auto-discovers every model you have installed). For reasoning models, reasoning streams into a collapsible accordion in chat and is available in the tool-inspection view. The chat header stays animated through generation and settles to **Reasoning** when the response ends.
 
 ---
 

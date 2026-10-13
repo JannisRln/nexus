@@ -37,13 +37,17 @@ After 25 tool calls, Nexus pauses and offers **Continue** or **Stop**. Continue 
 
 ## Thinking and model selection
 
-Thinking for a reply appears in one collapsible **Thinking** block, including reasoning between tool calls. In chat settings or **Settings &rarr; Nexus &rarr; Defaults**, the effort slider offers **Low**, **Medium**, **High**, **Extra high** and **Max** when the model supports thinking. Nexus maps these choices to the effort levels the provider accepts; some models support only one enabled level.
+Reasoning shared by the model appears in one collapsible accordion per reply, including reasoning between tool calls. The header types rotating words with a pulsing icon and silver sweep while the response is being generated, including during tool use. When the response finishes, it becomes **Reasoning** with a brain icon. Tool activity stays in the status bar.
+
+In chat settings or **Settings &rarr; Nexus &rarr; Defaults**, the effort slider offers **Low**, **Medium**, **High**, **Extra high** and **Max** when the model supports thinking. Nexus maps these choices to the effort levels the provider accepts; some models support only one enabled level.
 
 Model lists put models with newer published dates first. Your saved model and provider defaults stay selected. Custom or undated models retain their existing order.
 
 Thinking shares the provider's output allowance with the visible answer. Nexus uses the model allowance where the API requires a limit, and leaves optional limits unset unless you supply one. Provider limits still apply.
 
-The thinking block stays open while the reply is running, including between tool calls. Expanding or collapsing it manually keeps your choice through updates. Extra blank lines are collapsed for display. Scrolling up pauses automatic scrolling; returning to the bottom resumes it. The effort label updates while you drag its slider.
+The accordion starts collapsed. Click its header to expand it; your choice stays in place through updates and completion. Scrolling upward inside the reasoning pauses automatic following. Return to the bottom or press the circular down-arrow to catch up. The effort label updates while you drag its slider.
+
+If a response finishes but cannot be saved, Nexus keeps it available in memory and offers **Retry save**. This retries storage without repeating the model response or its tools. Save the response before continuing that conversation or closing Obsidian.
 
 The **Context window** slider sets the budget Nexus uses to track and compact conversation context. Each provider/model pair remembers its own limit; the default is the model's advertised window. Nexus checks the estimated prompt size before sending and compacts near the selected budget. This does not change the model's thinking effort or output allowance.
 

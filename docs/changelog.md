@@ -2,6 +2,15 @@
 
 ## October 2026
 
+**v5.20.4** — Gemini 4 Argon and a unified thinking accordion
+
+- Thinking appears in one accordion with typed words, cycling dots, a pulsing icon and a silver sweep. The header stays animated through tool use and answer streaming, then settles to a brain icon and **Reasoning** when the response finishes. Tool activity remains in the status bar ([#413](https://github.com/ProfSynapse/nexus/pull/413), [#415](https://github.com/ProfSynapse/nexus/pull/415)).
+- The accordion starts collapsed and preserves your choice through updates and completion. Scroll up to pause following, then return to the bottom or use the circular down-arrow to catch up ([#413](https://github.com/ProfSynapse/nexus/pull/413)).
+- If a completed response cannot be saved, **Retry save** retries storage without repeating the model or its tools. The unsaved response stays available while Obsidian remains open; save it before continuing the conversation or closing the app. Routine message updates also avoid replacing unrelated conversation messages ([#413](https://github.com/ProfSynapse/nexus/pull/413)).
+- **Gemini 4 Argon** is available through Google AI, with streaming responses, reasoning controls and Nexus tool calling ([#414](https://github.com/ProfSynapse/nexus/pull/414)).
+
+---
+
 **v5.20.3** — Reliable tool follow-ups and settings that respect sync
 
 - Anthropic replies no longer fail after thinking or tool calls because of mismatched tool IDs. Follow-up requests preserve the original conversation order, including when web search is enabled ([#412](https://github.com/ProfSynapse/nexus/pull/412)).

@@ -119,3 +119,5 @@ verification. | Added Windows binary discovery and CLI-toggle guidance to the
 release verification step. | `protocols/cut-release.md`.
 
 - 2026-10-13 | Release candidate matched installed files, but CLI reload success retained the old running manifest version. A vault-asserted disable/manifest refresh/enable loaded the new version and fresh error capture stayed clean. | Added bundle, installed-manifest and running-version verification to cut-release step 8.
+
+- 2026-10-13 | Prepared 5.20.4 under the machine's pnpm policy. The version lifecycle generated the release catalogs but pnpm left both npm-lockfile root versions at the previous release. | Documented the version/lifecycle checks and root-only lockfile synchronization; temporary pnpm tooling is not committed. Local Node 24 validation differs from the workflow's pinned Node 20. | `protocols/cut-release.md`.
