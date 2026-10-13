@@ -117,3 +117,5 @@ disabled, so the earlier availability probe had skipped a usable desktop app.
 After the user enabled it, an explicit Obsidian.com path passed the running-app
 verification. | Added Windows binary discovery and CLI-toggle guidance to the
 release verification step. | `protocols/cut-release.md`.
+
+- 2026-10-13 | Release candidate matched installed files, but CLI reload success retained the old running manifest version. A vault-asserted disable/manifest refresh/enable loaded the new version and fresh error capture stayed clean. | Added bundle, installed-manifest and running-version verification to cut-release step 8.

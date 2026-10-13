@@ -44,6 +44,10 @@ Key edits save automatically, including when you close the configuration window.
 
 If you want the simplest setup, an API key provider is usually the fastest path.
 
+### Settings across devices
+
+With Nexus 5.20.3 or later on every device, background workflow checks preserve newer synced settings, and Nexus applies incoming provider settings without a restart. Other settings, such as the storage location, require reloading Nexus. Allow your sync service to finish before expecting another device to use an updated key. Simultaneous edits to the same setting still follow your sync service's conflict rules.
+
 ### Secure key storage (optional)
 
 By default, API keys live in the plugin's settings file (`data.json`), which syncs with your vault. To keep keys out of synced files, enable **Store API keys in secure storage** in the Providers tab (requires Obsidian 1.11.4+). Keys (including OAuth tokens and app credentials) move into Obsidian's device-local secure storage and are stripped from `data.json` — you will need to re-enter them once on each device. Turning the toggle off writes keys back into `data.json`.

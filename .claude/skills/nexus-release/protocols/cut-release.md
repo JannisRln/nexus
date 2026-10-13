@@ -154,6 +154,14 @@ step 6 wrote `main.js` in place and there is nothing to deploy; confirm with
 first or you have verified an older bundle — `npm run deploy` is a
 Windows-only PowerShell script and does not help on macOS.
 
+After copying a candidate into a vault, compare its bundle hash and installed
+manifest with the build, then inspect the **running** plugin's manifest version
+using an in-band vault assertion. On macOS Obsidian 1.14.4, the CLI reported
+`Reloaded: nexus` while the running instance still reported the previous version.
+A vault-asserted plugin-manager disable, manifest refresh from the installed
+folder, and enable loaded the candidate. Recheck readiness and fresh errors after
+that operation; a successful CLI acknowledgement alone does not prove replacement.
+
 ### 9. Commit and push
 ```bash
 git add <the files from step 7>

@@ -38,3 +38,5 @@ their tools appear in no export.
 - 2026-10-03: No change. Release regeneration, exporter coverage and alias/catalog validation followed the existing protocol.
 
 - 2026-10-07 | Rebase overlapped generated catalogs from instruction-library and remote-delegation changes. Regenerating the combined live registry resolved conflicts and catalog/consumer checks passed. | No procedure change; refresh-catalog already forbids hand-patching generated JSON.
+
+- 2026-10-13 | Patch-release lifecycle regenerated both versioned exports and compatibility aliases; catalog validation and full-suite guidance/drift tests passed without tool-payload changes. | No protocol change.

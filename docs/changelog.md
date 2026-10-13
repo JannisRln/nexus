@@ -2,6 +2,16 @@
 
 ## October 2026
 
+**v5.20.3** — Reliable tool follow-ups and settings that respect sync
+
+- Anthropic replies no longer fail after thinking or tool calls because of mismatched tool IDs. Follow-up requests preserve the original conversation order, including when web search is enabled ([#412](https://github.com/ProfSynapse/nexus/pull/412)).
+- Repeated tool calls also retain the original prompt with Google, Codex, and affected OpenAI-compatible and local providers ([#412](https://github.com/ProfSynapse/nexus/pull/412)).
+- Background workflow checks no longer overwrite newer synced settings with an older API key. Incoming provider settings take effect without restarting Nexus; other synced settings take effect after a reload. Update Nexus on every device to stop older versions from writing stale settings ([#412](https://github.com/ProfSynapse/nexus/pull/412)).
+- Provider errors include their explanation when available. Desktop streaming retries a connection failure once only when the request could not have reached the provider ([#412](https://github.com/ProfSynapse/nexus/pull/412)).
+- **Get started** reports setup status more accurately and remembers whether you left its sections expanded or collapsed ([#411](https://github.com/ProfSynapse/nexus/pull/411)).
+
+---
+
 **v5.20.2** — Safer context changes, live cost updates, steadier thinking, and easier mobile key entry
 
 - The **Context window** slider remembers a budget for each provider and model. Switching to a smaller window, or lowering the current model's budget, prepares a compacted conversation before continuing. If the conversation still cannot fit, the send stops and preserves your draft ([#410](https://github.com/ProfSynapse/nexus/pull/410)).
