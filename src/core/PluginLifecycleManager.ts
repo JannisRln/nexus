@@ -24,14 +24,10 @@ import { VaultIngestionManager } from './ingest/VaultIngestionManager';
 import type { ServiceCreationContext } from './services/ServiceDefinitions';
 import type { HybridStorageAdapter } from '../database/adapters/HybridStorageAdapter';
 import type { ChatTraceService } from '../services/chat/ChatTraceService';
+import type { RouterState } from '../settings/SettingsRouter';
 
 // Type-only import to avoid bundling Node.js dependencies on mobile
 type MCPConnectorType = import('../connector').MCPConnector;
-
-// Interface for services with storage state management
-interface StateManager {
-    saveState(): Promise<void>;
-}
 
 /**
  * Extended Plugin interface with required service methods
@@ -77,6 +73,7 @@ export class PluginLifecycleManager {
     private readAloudCommandManager: ReadAloudCommandManager;
     private vaultIngestionManager: VaultIngestionManager;
     private embeddingManager: EmbeddingManager | null = null;
+    private embeddingStateUnsubscribe: (() => void) | null = null;
 
     // Pending timer handles for cleanup on shutdown
     private pendingTimers: number[] = [];
@@ -334,6 +331,11 @@ export class PluginLifecycleManager {
         // Configuration reloading handled by individual services
     }
 
+    /** Open Settings on the Nexus tab at the requested route. */
+    openNexusSettings(route: Partial<RouterState>): boolean {
+        return this.settingsTabManager.openNexusSettings(route);
+    }
+
     /**
      * Get initialization status
      */
@@ -386,18 +388,33 @@ export class PluginLifecycleManager {
                 })
             );
 
-            // Wire embedding service into ChatTraceService
-            const embeddingService = this.embeddingManager.getService();
-            if (embeddingService) {
-                const chatTraceService = await this.serviceRegistrar.getService<ChatTraceService>('chatTraceService');
-                if (this.shuttingDown) return;
-                if (chatTraceService && typeof chatTraceService.setEmbeddingService === 'function') {
-                    chatTraceService.setEmbeddingService(embeddingService);
-                }
+            // Wire the embedding service into ChatTraceService, and keep it
+            // wired as semantic search is turned off and on: each start builds
+            // a new service, and a stop must not leave the old one in use.
+            const chatTraceService = await this.serviceRegistrar.getService<ChatTraceService>('chatTraceService');
+            if (this.shuttingDown) return;
+            if (chatTraceService && typeof chatTraceService.setEmbeddingService === 'function') {
+                const syncTraceEmbeddings = (): void => {
+                    chatTraceService.setEmbeddingService(manager.getService());
+                };
+                syncTraceEmbeddings();
+                this.embeddingStateUnsubscribe = manager.onStateChange(syncTraceEmbeddings);
             }
         } catch (error) {
             console.error('[PluginLifecycleManager] Background embedding initialization failed:', error);
         }
+    }
+
+    /**
+     * Apply the semantic search setting at runtime, without a restart.
+     *
+     * Called by the settings UI and for a change synced from another device.
+     * Before the embedding manager exists (the first seconds after load) this
+     * does nothing: the manager reads the setting when it is created.
+     */
+    async setEmbeddingsEnabled(enabled: boolean): Promise<void> {
+        if (this.shuttingDown || !this.embeddingManager) return;
+        await this.embeddingManager.setEnabled(enabled);
     }
 
     /**
@@ -449,21 +466,13 @@ export class PluginLifecycleManager {
             }
 
             // Shutdown embedding system first (before database closes)
+            this.embeddingStateUnsubscribe?.();
+            this.embeddingStateUnsubscribe = null;
             if (this.embeddingManager) {
                 try {
                     await this.embeddingManager.shutdown();
                 } catch (error) {
                     void error;
-                }
-            }
-
-            // Save processed files state before cleanup
-            const stateManager = this.config.serviceManager?.getServiceIfReady<StateManager>('stateManager');
-            if (stateManager && typeof stateManager.saveState === 'function') {
-                try {
-                    await stateManager.saveState();
-                } catch (error) {
-                    console.error('[PluginLifecycleManager] Failed to save state during shutdown:', error);
                 }
             }
 

@@ -37,6 +37,11 @@ export class Modal {
     this.onOpen();
   }
 
+  setTitle(title: string): this {
+    (this.titleEl as unknown as { setText?: (text: string) => void }).setText?.(title);
+    return this;
+  }
+
   close(): void {
     this.onClose();
     // Mirror Obsidian cleanup on close
@@ -91,7 +96,11 @@ export class Component {
   private _isLoaded = false;
 
   load(): void {
+    // Like Obsidian: loading twice is a no-op, and children load with the parent.
+    if (this._isLoaded) return;
     this._isLoaded = true;
+    this.onload();
+    for (const child of this._children) child.load();
   }
 
   onload(): void {
@@ -99,6 +108,9 @@ export class Component {
   }
 
   unload(): void {
+    // Like Obsidian: unloading a component that was never loaded does nothing,
+    // so its registered listeners and cleanups stay in place.
+    if (!this._isLoaded) return;
     for (const child of this._children) child.unload();
     this._children.clear();
     // Run registered cleanup callbacks (Obsidian's Component.register)

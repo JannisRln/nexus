@@ -6,6 +6,7 @@ import { BRAND_NAME } from './constants/branding';
 import { supportsMCPBridge } from './utils/platform';
 import { WasmEnsurer } from './utils/WasmEnsurer';
 import type { PluginServices } from './types/plugin/PluginTypes';
+import type { RouterState } from './settings/SettingsRouter';
 
 // MCPConnector type for desktop-only dynamic import
 type MCPConnectorType = import('./connector').MCPConnector;
@@ -72,6 +73,18 @@ export default class NexusPlugin extends Plugin {
         if (this.unloading || !this.settings) return;
         try {
             const needsReload = await this.settings.reconcileExternalSettings(this.settingsSyncAbort.signal);
+            if (this.unloading) return;
+            // Semantic search is applied live rather than by reload. The call is
+            // idempotent, so it also catches a value adopted by an earlier read
+            // (the workflow scheduler reconciles synced settings too).
+            if (this.lifecycleManager) {
+                try {
+                    await this.lifecycleManager.setEmbeddingsEnabled(this.settings.settings.enableEmbeddings ?? true);
+                } catch (error) {
+                    // The settings were adopted; only starting or stopping the index failed.
+                    console.error(`[${BRAND_NAME}] Could not apply the synced semantic search setting:`, error);
+                }
+            }
             if (needsReload && !this.unloading && !this.syncedSettingsNeedReload) {
                 this.syncedSettingsNeedReload = true;
                 new Notice(`${BRAND_NAME}: Settings changed on another device. Reload Nexus to apply changes outside AI providers.`);
@@ -209,6 +222,14 @@ export default class NexusPlugin extends Plugin {
         }
 
         // Service manager cleanup handled by lifecycle manager
+    }
+
+    /**
+     * Open Settings on the Nexus tab at the requested route, e.g. `{ tab: 'providers' }`.
+     * Returns false when settings cannot be opened yet.
+     */
+    public openNexusSettings(route: Partial<RouterState>): boolean {
+        return this.lifecycleManager?.openNexusSettings(route) ?? false;
     }
 
     /**
