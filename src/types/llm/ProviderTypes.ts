@@ -262,10 +262,11 @@ export const DEFAULT_LLM_PROVIDER_SETTINGS: LLMProviderSettings = {
     provider: 'google',
     model: 'gemini-3.1-flash-image'
   },
-  // Google shuts down every Veo 3.1 preview id on 2026-10-22, and its
-  // successor (gemini-omni-1.1-flash) needs the Interactions API, which the
-  // Google video adapter does not speak. Veo 3.1 Fast via OpenRouter is the
-  // same model family on a route that is not being retired.
+  // Veo 3.1 Fast via OpenRouter: GA, on a route that is not being retired, and
+  // priced like Google-direct Gemini Omni Flash (about $0.10/s at 720p with
+  // audio). Omni is in the catalog and is what a Google-only setup falls back
+  // to; it has one live generation behind it so far, which is not enough to
+  // move the default for setups that have both keys.
   defaultVideoModel: {
     provider: 'openrouter',
     model: 'google/veo-3.1-fast',
