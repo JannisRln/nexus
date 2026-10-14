@@ -39,17 +39,17 @@ After 25 tool calls, Nexus pauses and offers **Continue** or **Stop**. Continue 
 
 Reasoning shared by the model appears in one collapsible accordion per reply, including reasoning between tool calls. The header types rotating words with a pulsing icon and silver sweep while the response is being generated, including during tool use. When the response finishes, it becomes **Reasoning** with a brain icon. Tool activity stays in the status bar.
 
-In chat settings or **Settings &rarr; Nexus &rarr; Defaults**, the effort slider offers **Low**, **Medium**, **High**, **Extra high** and **Max** when the model supports thinking. Nexus maps these choices to the effort levels the provider accepts; some models support only one enabled level.
+In chat settings or **Settings &rarr; Nexus &rarr; Defaults**, the **Thinking** dropdown appears when the model supports thinking. It offers **Off** plus the levels that model distinguishes, from **Low**, **Medium**, **High**, **Extra high** and **Max**. Nexus maps these choices to the effort levels the provider accepts; some models support only one enabled level. **Creativity** (temperature) is disabled for models that set their own.
 
 Model lists put models with newer published dates first. Your saved model and provider defaults stay selected. Custom or undated models retain their existing order.
 
 Thinking shares the provider's output allowance with the visible answer. Nexus uses the model allowance where the API requires a limit, and leaves optional limits unset unless you supply one. Provider limits still apply.
 
-The accordion starts collapsed. Click its header to expand it; your choice stays in place through updates and completion. Scrolling upward inside the reasoning pauses automatic following. Return to the bottom or press the circular down-arrow to catch up. The effort label updates while you drag its slider.
+The accordion starts collapsed. Click its header to expand it; your choice stays in place through updates and completion. Scrolling upward inside the reasoning pauses automatic following. Return to the bottom or press the circular down-arrow to catch up.
 
 If a response finishes but cannot be saved, Nexus keeps it available in memory and offers **Retry save**. This retries storage without repeating the model response or its tools. Save the response before continuing that conversation or closing Obsidian.
 
-The **Context window** slider sets the budget Nexus uses to track and compact conversation context. Each provider/model pair remembers its own limit; the default is the model's advertised window. Nexus checks the estimated prompt size before sending and compacts near the selected budget. This does not change the model's thinking effort or output allowance.
+The **Context window** slider sets the budget Nexus uses to track and compact conversation context. It snaps to preset sizes (32K, 64K, 128K, 200K, 350K, 750K and 1M) below the model's maximum, plus the maximum itself. In Defaults, each provider/model pair remembers its own limit, and the default is the model's advertised window. In chat settings, the limit applies to that conversation only. Nexus checks the estimated prompt size before sending and compacts near the selected budget. This does not change the model's thinking effort or output allowance.
 
 Switching to a smaller model applies its budget to the next send. If necessary, Nexus summarizes older context and retains the latest exchanges; the full transcript stays saved. If the prompt still exceeds the budget afterward, the send stops and your draft is restored. Switching back to a larger model does not automatically put compacted messages back into the prompt.
 
@@ -165,13 +165,15 @@ When a new model or a lower **Context window** setting cannot fit the current co
 
 In chat settings, the slider previews its value while you drag; **Save** applies the model and budget together. If preparation fails or you cancel it, the previous model and budget remain active. A pending message waits for preparation and stays in the composer if the change fails. Increasing the budget does not restore previously summarized messages to the model's active context.
 
-Each chat saves its committed context budget. Changing a model's budget in Defaults also prepares the active chat if it uses that model; other open chats keep their own budgets. The previous provider must be available to generate a handoff summary.
+Each chat saves its committed context budget. Changing Defaults does not alter chats that are already open; new chats use them. The previous provider must be available to generate a handoff summary.
 
 ---
 
 ## Subagents
 
 The chat can spawn subagent conversations — branched LLM calls that handle tool continuations autonomously, then report results back to the main thread.
+
+Subagents and `executePrompt` runs use the model, thinking, **Creativity** and **Context window** in the **Subagents** section: set them in **Settings &rarr; Nexus &rarr; Defaults**, or for one conversation in chat settings. Without a subagent model, they use the chat model when it is a cloud model, or the first cloud provider with a default model when the chat model is local. The context window also limits how much workspace data and context files a subagent receives; items that do not fit are left out and listed in its prompt.
 
 ### Remote Agents
 

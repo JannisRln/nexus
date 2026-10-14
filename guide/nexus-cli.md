@@ -9,8 +9,8 @@ Design & rationale: [`docs/plans/local-cli-agent-bridge-plan.md`](../docs/plans/
 
 ## Install
 
-Obsidian → Settings → Nexus → Get Started → External agents → **Local CLI (no
-MCP required)** → pick your agents → **Install CLI**. It:
+Obsidian → Settings → Nexus → Get started → Connect an external agent →
+**Command line** → turn on the agents you want → **Install**. It:
 
 - writes the CLI to a machine-global location and puts `nexus` on your PATH
   (macOS/Linux symlink in `~/.local/bin`; Windows `nexus.cmd` in
@@ -197,8 +197,8 @@ timed-out image or file write can still land in the vault afterwards.
 - **`nexus: command not found`** — restart the terminal after installing. If it
   still fails, PATH doesn't include the install dir (macOS `~/.local/bin`,
   Windows `%LOCALAPPDATA%\nexus`), or `node` isn't installed. Check **Get started
-  -> External agents -> Local CLI**: if it says "not yet on your PATH", it shows
-  the line to paste and where. An account with no shell profile at all is the
+  -> Connect an external agent -> Command line**: if it says "Not on your PATH",
+  **Shell setup** shows the line to paste and where. An account with no shell profile at all is the
   usual cause on macOS — nothing has ever added `~/.local/bin`.
 - **"Multiple vaults open"** — run from inside the vault's folder, or run `nexus vaults` and pass `--vault <name>`.
 - **Rejected for missing memory/goal** — every `use` needs `--memory` and

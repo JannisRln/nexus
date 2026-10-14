@@ -16,6 +16,16 @@ Use `search content` with `semantic: true` to search notes by meaning.
 
 ---
 
+## Turning It On and Off
+
+Semantic search is in **Settings &rarr; Nexus &rarr; Defaults &rarr; Semantic search**. Changes apply immediately, with no restart, including a change synced from another device.
+
+- **While it is on**, the section shows how many notes and chats are indexed and the indexing progress, with an estimate and pause/resume. Each indexing pass removes entries for deleted or renamed notes and deleted chats.
+- **Turning it off** asks for confirmation. Vault search falls back to keyword matching, and agents stop being offered semantic search. A `search content` call with `semantic: true` returns keyword results with a note that semantic search is off.
+- **Delete index** appears while it is off. It removes the stored vectors and shrinks the cache file; your notes and conversations are not touched. Turning semantic search back on rebuilds the index.
+
+---
+
 ## Conversation Memory Search
 
 Use `search memory` to search across past conversation turns and tool call traces.
