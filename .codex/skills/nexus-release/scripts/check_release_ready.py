@@ -263,8 +263,12 @@ def check_changelog_coverage(root: Path, version: str, text: str, report: Report
     if log is None:
         return
     merged = {m for m in ISSUE_REF.findall(log)}
+    # A body that cites an older PR ("reverses part of #410") is not new work:
+    # drop references whose own squash commit already shipped in a release.
+    shipped_log = git(root, "log", "--no-merges", "--format=%s", previous)
+    shipped = set(ISSUE_REF.findall(shipped_log)) if shipped_log else set()
     documented = set(ISSUE_REF.findall(entry))
-    missing = sorted(merged - documented, key=int)
+    missing = sorted(merged - documented - shipped, key=int)
     if missing:
         report.warn(
             "docs/changelog.md",
