@@ -40,7 +40,7 @@ For Anthropic, OpenAI, Google AI, Groq, Mistral, OpenRouter, Perplexity, and Req
 4. Wait for automatic key validation to finish
 5. Open Nexus chat and select one of that provider's models
 
-Key edits save automatically, including when you close the configuration window. A new connection is enabled after validation succeeds. To replace a key, select the entire existing value before pasting; surrounding whitespace is removed automatically. On mobile, the input fills its own row, with **Get key** below it.
+Key edits save automatically, including when you close the configuration window. A new connection is enabled after validation succeeds. Validation never depends on a particular model, so a model the provider has retired cannot fail it. Models the provider no longer offers are marked **No longer available** in the model list and cannot be turned on; your saved setting is kept in case the model returns. To replace a key, select the entire existing value before pasting; surrounding whitespace is removed automatically. On mobile, the input fills its own row, with **Get key** below it.
 
 If you want the simplest setup, an API key provider is usually the fastest path.
 

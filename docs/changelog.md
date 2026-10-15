@@ -2,15 +2,14 @@
 
 ## October 2026
 
-**Unreleased** — API keys validate again, and retired models no longer block a provider
+**v5.21.1** — API keys validate again, and retired models no longer block a provider
 
-> Draft for the next release. Version number and PR links are added when it is cut.
+- Adding an OpenRouter API key failed with "No endpoints found for liquid/lfm-2.5-1.2b-thinking:free", so OpenRouter stayed turned off even with a working key. The check sent a test message to a free model that OpenRouter has since removed. It now asks OpenRouter whether the key is valid, which costs nothing and does not depend on any model ([#420](https://github.com/ProfSynapse/nexus/pull/420)).
+- No provider's key check can be failed by a retired model any more. OpenAI, Anthropic, Google, Mistral, Groq and DeepSeek keys are checked by listing models instead of sending a test message, which also fixes Groq keys, whose test model had been retired. Perplexity and Requesty still send a test message, but an error about the test model no longer counts as a bad key. An OpenAI key restricted from listing models is accepted ([#420](https://github.com/ProfSynapse/nexus/pull/420), [#421](https://github.com/ProfSynapse/nexus/pull/421)).
+- Perplexity and Requesty, which have no way to check a key without a message, now test with the cheapest models in Nexus's own list for that provider and move on to the next cheapest if one has been retired, instead of a fixed model that could disappear ([#421](https://github.com/ProfSynapse/nexus/pull/421)).
+- Gemini 2.5 Flash and Gemini 2.5 Pro are removed from Requesty. Google is retiring both, and new accounts already cannot use them ([#421](https://github.com/ProfSynapse/nexus/pull/421)).
+- Provider settings mark models the provider no longer offers as **No longer available** and lock their toggle off, instead of letting you turn on a model that will fail. Your saved choice is kept in case the model returns. If Nexus cannot reach the model list, every model stays available ([#420](https://github.com/ProfSynapse/nexus/pull/420)).
 
-- Adding an OpenRouter API key failed with "No endpoints found for liquid/lfm-2.5-1.2b-thinking:free", so OpenRouter stayed turned off even with a working key. The check sent a test message to a free model that OpenRouter has since removed. It now asks OpenRouter whether the key is valid, which costs nothing and does not depend on any model.
-- No provider's key check can be failed by a retired model any more. OpenAI, Anthropic, Google, Mistral, Groq and DeepSeek keys are checked by listing models instead of sending a test message, which also fixes Groq keys, whose test model had been retired. Perplexity and Requesty still send a test message, but an error about the test model no longer counts as a bad key. An OpenAI key restricted from listing models is accepted.
-- Perplexity and Requesty, which have no way to check a key without a message, now test with the cheapest models in Nexus's own list for that provider and move on to the next cheapest if one has been retired, instead of a fixed model that could disappear.
-- Gemini 2.5 Flash and Gemini 2.5 Pro are removed from Requesty. Google is retiring both, and new accounts already cannot use them.
-- Provider settings mark models the provider no longer offers as **No longer available** and lock their toggle off, instead of letting you turn on a model that will fail. Your saved choice is kept in case the model returns. If Nexus cannot reach the model list, every model stays available.
 ---
 
 **v5.21.0** — Redesigned Defaults and Chat settings, Get started pages, subagent settings, semantic search you can turn on and off, and Gemini Omni Flash video
