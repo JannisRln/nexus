@@ -49,6 +49,10 @@ The accordion starts collapsed. Click its header to expand it; your choice stays
 
 If a response finishes but cannot be saved, Nexus keeps it available in memory and offers **Retry save**. This retries storage without repeating the model response or its tools. Save the response before continuing that conversation or closing Obsidian.
 
+Nexus also saves progress while a reply streams, with later checkpoints at most every two seconds. If Obsidian closes mid-reply, the saved progress is recovered as interrupted rather than treated as a finished answer. Tool calls that did not finish are removed from the recovered reply before it is sent back to a model.
+
+Tool results larger than 256 KiB are shortened when saved and included in later conversation history, keeping their first and last 64 KiB. The active continuation receives the full result. Keep important large outputs in vault files when you need the complete content in future turns.
+
 The **Context window** slider sets the budget Nexus uses to track and compact conversation context. It snaps to preset sizes (32K, 64K, 128K, 200K, 350K, 750K and 1M) below the model's maximum, plus the maximum itself. In Defaults, each provider/model pair remembers its own limit, and the default is the model's advertised window. In chat settings, the limit applies to that conversation only. Nexus checks the estimated prompt size before sending and compacts near the selected budget. This does not change the model's thinking effort or output allowance.
 
 Switching to a smaller model applies its budget to the next send. If necessary, Nexus summarizes older context and retains the latest exchanges; the full transcript stays saved. If the prompt still exceeds the budget afterward, the send stops and your draft is restored. Switching back to a larger model does not automatically put compacted messages back into the prompt.

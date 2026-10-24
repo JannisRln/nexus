@@ -132,6 +132,10 @@ nothing about whether the plugin still loads in the app:
 NEXUS_OBSIDIAN_CLI=obsidian-cli npm run verify:obsidian -- --skip-build --vault <your test vault>
 ```
 
+With pnpm, use `pnpm run verify:obsidian --skip-build --vault <your test vault>`.
+Do not forward npm's standalone `--`: pnpm 12 passes it to this script, which
+rejects it as an unknown option.
+
 Set `NEXUS_OBSIDIAN_CLI=obsidian-cli` on macOS. The script probes `obsidian`
 first, and on a case-insensitive filesystem that name resolves to the Electron
 GUI binary, which half-answers and intermittently returns empty output — a

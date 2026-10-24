@@ -27,6 +27,8 @@ Workspaces scope your sessions, traces, and operations. Every tool call is tagge
 
 When a workspace loads, its **recent activity** is grouped by session and carries the memory, goal, and constraints captured with each trace — so the AI sees not just *what* happened recently but *why*.
 
+Activity traces keep a compact record of the operation. Large inputs and tool results are represented by a short preview, size, and fingerprint rather than a second full copy of the content. Read the source note or saved output when you need its complete contents. Existing event files are preserved; activity loaded into the local cache uses the same limits.
+
 ---
 
 ## Workflows

@@ -251,3 +251,7 @@ The new request-body regression failed before the adapter fix. The gated provide
 ### 2026-10-24 — Provider compaction acceptance comparison
 
 Added gated provider-compaction-live-smoke.test.ts using the real preservation service and streaming orchestrator with a synthetic transcript. Transport variants compare current and metadata-free envelopes and deliberately restore the old Anthropic bug. The report records field names and statuses, never headers/keys. Optional plugin settings supply saved credentials because the repo OpenRouter key failed authentication while its saved plugin credential succeeded. Default gate skip was verified.
+
+### 2026-10-24 — Release candidate in the running test vault
+
+Obsidian 1.14.5 on Linux: a vault-first TTY wrapper worked for version, plugin:reload, dev:errors, dev:console, dev:screenshot and eval. A developer eval immediately after opening the test vault initially returned command-not-found; attaching dev:debug and waiting for readiness resolved it. A read during reload briefly had no plugin instance, so the explicit vault/version/storage readiness assertion remained necessary after verify:obsidian. The installed 5.21.2 candidate completed a synthetic Anthropic preservation summary; its temporary key was memory-only, restored afterward and removed from the transport file. Existing live-loop readiness/TTY guidance covered this; no protocol change.

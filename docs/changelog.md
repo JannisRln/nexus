@@ -2,11 +2,15 @@
 
 ## October 2026
 
-**Unreleased** — Saving works again in vaults with an incomplete storage record
+**v5.21.2** — Reliable compaction, smaller activity records, and recovery of interrupted replies
 
-> Draft for the next release. Version number and PR links are added when it is cut.
-
-- In a vault whose Nexus `data.json` had a storage record without its migration details (for example after the file was cleaned by hand), storage never finished starting. Every save failed with "Failed to save workspace" or "Storage is not ready", including workspaces, workflows and schedules. Nexus now treats an incomplete or damaged storage record as missing: it checks the vault for older Nexus data, moves it over if there is any, and rewrites the record. No data is deleted.
+- Compacting a conversation with Anthropic failed with `messages.0.id: Extra inputs are not permitted`. Nexus now sends only the fields Anthropic accepts on each message, while preserving tool calls and thinking blocks ([#426](https://github.com/ProfSynapse/nexus/pull/426)).
+- In a vault whose Nexus `data.json` had a storage record without its migration details (for example after the file was cleaned by hand), storage never finished starting. Every save failed with "Failed to save workspace" or "Storage is not ready", including workspaces, workflows and schedules. Nexus now treats an incomplete or damaged storage record as missing: it checks the vault for older Nexus data, moves it over if there is any, and rewrites the record. No data is deleted ([#422](https://github.com/ProfSynapse/nexus/pull/422)).
+- Activity records no longer duplicate large note contents or tool results. Oversized values are replaced with a short preview, size, and fingerprint, keeping the operation and its purpose readable. Existing event files are preserved; the same limits apply when activity is loaded into the local cache ([#425](https://github.com/ProfSynapse/nexus/pull/425)).
+- Replies are saved as they stream, with later checkpoints at most every two seconds. If Obsidian closes mid-reply, Nexus keeps the saved progress and marks it interrupted when recovered. Chat updates write changed fields instead of repeatedly copying the whole reply and every tool result ([#425](https://github.com/ProfSynapse/nexus/pull/425)).
+- Tool results larger than 256 KiB keep their first and last 64 KiB when saved and replayed into later chat context. The active tool continuation still receives the full result. The default event-shard size is now 1 MiB, reducing how much data needs to be rewritten or synced at once ([#425](https://github.com/ProfSynapse/nexus/pull/425)).
+- The thinking panel's down-arrow is centered, and long tool status text scrolls continuously without jumping back between passes ([#423](https://github.com/ProfSynapse/nexus/pull/423)).
+- Build setup explicitly approves the existing dependency installation scripts; no new dependencies are introduced ([#424](https://github.com/ProfSynapse/nexus/pull/424)).
 
 ---
 
