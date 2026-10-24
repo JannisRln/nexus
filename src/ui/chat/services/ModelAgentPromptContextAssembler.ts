@@ -1,5 +1,7 @@
 import type { CliToolSchema } from '../../../agents/toolManager/types';
-import type { PreparedWorkflow, PreparedInstruction, ServiceResult } from '../../../services/instructions/types';
+import type { PreparedWorkflow, PreparedInstruction, ServiceResult, ToolCatalogPort } from '../../../services/instructions/types';
+import { selectPreviousToolSchemas, selectConversationRecoverySchema } from '../../../services/chat/CompactionToolContext';
+import { selectCompactionTraceContext } from '../../../services/chat/CompactionTraceContext';
 import type { WorkspaceContext } from '../../../database/types/workspace/WorkspaceTypes';
 import type { CompactedContext } from '../../../services/chat/ContextCompactionService';
 import type { CompactionFrontierRecord } from '../../../services/chat/CompactionFrontierService';
@@ -13,6 +15,7 @@ import type {
   SystemPromptBuilder,
   ToolCatalogEntry,
   RemoteAgentPromptInfo,
+  SystemPromptOptions,
 } from './SystemPromptBuilder';
 
 interface ContextTokenTrackerLike {
@@ -43,6 +46,8 @@ export interface ModelAgentPromptContextSnapshot {
   contextTokenTracker: ContextTokenTrackerLike | null;
   compactionFrontier: CompactionFrontierRecord[];
   latestCompactionRecord: CompactedContext | null;
+  effectiveContextWindow?: number;
+  compactionToolSelectors?: string[];
 }
 
 export interface ModelAgentMessageOptions {
@@ -66,6 +71,7 @@ interface ModelAgentPromptContextAssemblerDependencies {
   getSessionId: () => Promise<string | undefined>;
   getRemoteAgents?: () => RemoteAgentPromptInfo[];
   getToolCatalog?: () => ToolCatalogEntry[];
+  getToolCatalogService?: () => Promise<ToolCatalogPort | null>;
   restoreWorkflow?: (sessionId: string) => Promise<ServiceResult<PreparedWorkflow | null>>;
   prepareIndividualSkills?: (sessionId: string, workflow: PreparedWorkflow | null) => Promise<{ skills: PreparedInstruction[]; tools: CliToolSchema[] }>;
 }
@@ -80,10 +86,11 @@ export class ModelAgentPromptContextAssembler {
     if (!restored.ok) throw new Error(`Selected workflow could not be restored: ${restored.error.message}`);
     const preparedWorkflow = restored.value;
     const individual = sessionId && this.deps.prepareIndividualSkills ? await this.deps.prepareIndividualSkills(sessionId, preparedWorkflow) : { skills: [], tools: [] };
-    if (preparedWorkflow && snapshot.selectedModel && (preparedWorkflow.estimatedTokens ?? Math.ceil(JSON.stringify(preparedWorkflow).length / 4)) > Math.max(0, snapshot.selectedModel.contextWindow - 2048)) {
+    const effectiveWindow = snapshot.effectiveContextWindow ?? snapshot.selectedModel?.contextWindow ?? 0;
+    if (preparedWorkflow && snapshot.selectedModel && (preparedWorkflow.estimatedTokens ?? Math.ceil(JSON.stringify(preparedWorkflow).length / 4)) > Math.max(0, effectiveWindow - 2048)) {
       throw new Error('Selected workflow exceeds this model context budget. Choose a larger model or load a smaller workflow.');
     }
-    const prompt = await this.deps.systemPromptBuilder.build({
+    const promptOptions: SystemPromptOptions = {
       preparedWorkflow,
       activeSkills: individual.skills,
       preloadedTools: individual.tools,
@@ -100,8 +107,44 @@ export class ModelAgentPromptContextAssembler {
       legacyCompactionRecord: snapshot.latestCompactionRecord,
       toolCatalog: this.deps.getToolCatalog?.(),
       remoteAgents: this.deps.getRemoteAgents?.(),
-    });
-    if ((preparedWorkflow || individual.skills.length) && snapshot.selectedModel && Math.ceil((prompt?.length ?? 0) / 4) > Math.max(0, snapshot.selectedModel.contextWindow - (snapshot.contextTokenTracker?.getStatus().usedTokens ?? 0) - 2048)) {
+    };
+    let prompt = await this.deps.systemPromptBuilder.build(promptOptions);
+    const retainedReserve = snapshot.compactionFrontier.at(-1)?.retainedTokensAtCompaction ?? 0;
+    const compacted = snapshot.compactionFrontier.length > 0 || !!snapshot.latestCompactionRecord;
+    const selectors = snapshot.compactionToolSelectors
+      ?? snapshot.compactionFrontier.flatMap(record => record.toolSelectors ?? []);
+    const catalog = compacted || selectors.length ? await this.deps.getToolCatalogService?.() : null;
+    // Recovery must be discoverable even if this conversation never used search.
+    // Reserve the state and recent turns before allocating its full schema.
+    if (compacted) {
+      const recoveryBudget = Math.max(0, Math.floor(effectiveWindow * 0.75)
+        - Math.ceil((prompt?.length ?? 0) / 4) - retainedReserve);
+      const recovery = catalog ? selectConversationRecoverySchema(catalog, recoveryBudget,
+        [...(preparedWorkflow?.preloadedTools ?? []), ...individual.tools])
+        : { tools: [], deferred: ['search memory'] };
+      promptOptions.preloadedTools = [...individual.tools, ...recovery.tools];
+      promptOptions.deferredToolSelectors = recovery.deferred;
+      prompt = await this.deps.systemPromptBuilder.build(promptOptions);
+    }
+    const traceContext = [...snapshot.compactionFrontier].reverse().find(record => record.traceContext)?.traceContext
+      ?? snapshot.latestCompactionRecord?.traceContext;
+    const traceBudget = Math.max(0, Math.min(Math.floor(effectiveWindow * 0.05),
+      Math.floor(effectiveWindow * 0.75) - Math.ceil((prompt?.length ?? 0) / 4) - retainedReserve));
+    promptOptions.recentTraceContext = selectCompactionTraceContext(traceContext, traceBudget);
+    if (promptOptions.recentTraceContext) prompt = await this.deps.systemPromptBuilder.build(promptOptions);
+    if (selectors.length) {
+      const window = effectiveWindow;
+      const stateReserve = snapshot.compactionFrontier.length ? 0 : Math.floor(window * 0.1);
+      const budget = Math.max(0, Math.min(Math.floor(window * 0.15),
+        Math.floor(window * 0.75) - Math.ceil((prompt?.length ?? 0) / 4) - stateReserve - retainedReserve));
+      const selected = catalog ? selectPreviousToolSchemas(selectors, catalog, budget,
+        [...(preparedWorkflow?.preloadedTools ?? []), ...(promptOptions.preloadedTools ?? [])])
+        : { tools: [], deferred: [...new Set(selectors)] };
+      prompt = await this.deps.systemPromptBuilder.build({ ...promptOptions,
+        preloadedTools: [...(promptOptions.preloadedTools ?? []), ...selected.tools],
+        deferredToolSelectors: [...new Set([...(promptOptions.deferredToolSelectors ?? []), ...selected.deferred])] });
+    }
+    if ((preparedWorkflow || individual.skills.length) && snapshot.selectedModel && Math.ceil((prompt?.length ?? 0) / 4) > Math.max(0, effectiveWindow - (snapshot.contextTokenTracker?.getStatus().usedTokens ?? 0) - 2048)) {
       throw new Error('Loaded instructions and tools exceed this model context budget. Load fewer skills or choose a larger model.');
     }
     return prompt;

@@ -1,6 +1,8 @@
 import type { ConversationData, ConversationMessage } from '../../types/chat/ChatTypes';
 import { ContextBudgetService } from '../chat/ContextBudgetService';
 import { ContextCompactionService, type CompactedContext } from '../chat/ContextCompactionService';
+import { compactionContextText } from '../chat/CompactionContext';
+import { selectCompactionTraceContext, traceContextText } from '../chat/CompactionTraceContext';
 
 export interface LiveVoiceContextBuilderOptions {
   maxContextTokens?: number;
@@ -25,10 +27,20 @@ export class LiveVoiceContextBuilder {
     const context = this.wrapContext(frontierSection, recentSection);
 
     if (ContextBudgetService.estimateTextTokens(context) <= maxTokens) {
-      return context;
+      return this.withRecentTraces(conversation, context, maxTokens);
     }
 
-    return this.buildTrimmedContext(frontierSection, recentMessages, maxTokens);
+    return this.withRecentTraces(conversation, this.buildTrimmedContext(frontierSection, recentMessages, maxTokens), maxTokens);
+  }
+
+  private withRecentTraces(conversation: ConversationData, context: string, maxTokens: number): string {
+    if (!context) return context;
+    const traces = [...this.getCompactionFrontier(conversation)].reverse().find(record => record.traceContext)?.traceContext;
+    const budget = Math.max(0, Math.min(Math.floor(maxTokens * 0.05), maxTokens - ContextBudgetService.estimateTextTokens(context) - 16));
+    const selected = selectCompactionTraceContext(traces, budget);
+    if (!selected) return context;
+    const block = `<recent_goal_memory_traces>\n${this.escapeXmlContent(traceContextText(selected))}\n</recent_goal_memory_traces>`;
+    return context.replace('</conversation_context>', `${block}\n</conversation_context>`);
   }
 
   private buildTrimmedContext(
@@ -76,7 +88,7 @@ export class LiveVoiceContextBuilder {
         const topics = record.topics?.slice(0, 8) ?? [];
         const lines = [
           `  <record index="${index}">`,
-          `    <summary>${this.escapeXmlContent(record.summary)}</summary>`,
+          `    <summary>${this.escapeXmlContent(compactionContextText(record))}</summary>`,
         ];
         if (files.length > 0) {
           lines.push(`    <files>${this.escapeXmlContent(files.join(', '))}</files>`);
@@ -95,6 +107,7 @@ export class LiveVoiceContextBuilder {
     return [
       '<compaction_context>',
       '<instruction>Compressed older conversation context. Use it for continuity, but rely on recent messages for current details.</instruction>',
+      '<history_recovery>Search missing earlier details before guessing. Use search memory with memoryTypes ["conversations"] and --session-name set to the current session name or ID; --window-size 3 retrieves surrounding turns. Discover the schema with getTools if it is not preloaded. Search depends on an available conversation index; report unavailable search or no matches instead of inventing history.</history_recovery>',
       ...records,
       '</compaction_context>',
     ].join('\n');

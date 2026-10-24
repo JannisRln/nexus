@@ -69,3 +69,42 @@ compaction must summarize only the active suffix, and a no-op must leave the
 previous boundary intact. Separately, retry regeneration must replace provider
 replay metadata: merging a previous Anthropic response into a new answer can
 make the next prompt differ from the answer visible in chat.
+
+
+## Saved-state compaction
+
+Ordinary compaction drafts `createState` arguments from the active conversation
+and prior checkpoint, then the host executes the real state tool once. The JSON
+drafting call has no native tools: a local model need not implement function
+calling to preserve context. The output target is a percentage of the effective
+selected/runtime window, capped by known output allowance and actual prompt room.
+
+Keep the complete saved state in conversation metadata and in the next prompt.
+Do not pass it through the legacy frontier's short meta-summary merge. Resolve
+previous tool references against the live catalog, newest first; optional schemas
+must yield space to the state and retained turns. Test repeated compaction,
+reopening, and JSONL replay rather than only the first boundary change.
+
+A restored model selection must retain its output allowance on both discovery
+and static/custom fallback paths. The static model service calls this field
+`maxTokens`; runtime `ModelInfo` calls it `maxOutputTokens`. Read both types before
+mapping them into `ModelOption`.
+
+
+The compaction prompt also carries a bounded chronological snapshot of original
+session goal/memory entries, including original native-chat call arguments when
+no separate MCP trace exists. Keep this distinct from the generated checkpoint:
+it shows the recent sequence of working context and intent. Use nested batch
+command outcomes when present; successful useTools dispatch alone does not mean
+a requested command succeeded. Allocate state and recent turns first, then this
+timeline, then optional schemas. Preserve the snapshot through handoffs and
+reloads, and resize it for the effective selected window.
+
+
+A compacted prompt should explicitly explain how to recover missing details and
+preload the current conversation-search tool even when it was never used in the
+original exchange. Reserve state and recent turns first, then prioritize the
+recovery schema before optional trace/schema extras. If the full signature is
+too large, derive a labeled recovery subset from the live catalog and retain its
+original argument definitions. Report unavailable or empty search honestly;
+loading a tool schema does not establish that its conversation index has hits.

@@ -12,6 +12,7 @@
  */
 
 import type { CliToolSchema } from '../../../agents/toolManager/types';
+import { traceContextText, type CompactionTraceContext } from '../../../services/chat/CompactionTraceContext';
 import type { PreparedWorkflow, PreparedInstruction } from '../../../services/instructions/types';
 import { WorkspaceContext } from '../../../database/types/workspace/WorkspaceTypes';
 import { MessageEnhancement } from '../components/suggesters/base/SuggesterInterfaces';
@@ -116,6 +117,8 @@ export interface SystemPromptOptions {
   preparedWorkflow?: PreparedWorkflow | null;
   activeSkills?: PreparedInstruction[];
   preloadedTools?: CliToolSchema[];
+  deferredToolSelectors?: string[];
+  recentTraceContext?: CompactionTraceContext;
   workspaceContext?: WorkspaceContext | null;
   // Full comprehensive workspace data from LoadWorkspaceTool (when workspace selected in settings)
   loadedWorkspaceData?: LoadedWorkspaceData | null;
@@ -165,6 +168,10 @@ export class SystemPromptBuilder {
       if (compactionFrontierSection) {
         sections.push(compactionFrontierSection);
       }
+    }
+
+    if (options.recentTraceContext) {
+      sections.push(`<recent_goal_memory_traces>\n${this.escapeXmlContent(traceContextText(options.recentTraceContext))}\n</recent_goal_memory_traces>`);
     }
 
     // 1. Session context with tools overview (skip for pre-trained models like Nexus)
@@ -244,6 +251,9 @@ export class SystemPromptBuilder {
     const tools = new Map<string, CliToolSchema>();
     for (const tool of [...(options.preparedWorkflow?.preloadedTools ?? []), ...(options.preloadedTools ?? [])]) tools.set(`${tool.agent}/${tool.tool}`, tool);
     if (tools.size) sections.push(`<preloaded_tools>\n${this.escapeXmlContent(JSON.stringify([...tools.values()], null, 2))}\n</preloaded_tools>`);
+    if (options.deferredToolSelectors?.length) {
+      sections.push(`<previous_tools_pending_discovery>\nRecovery tools or previously used tools whose schemas did not fit or are currently unavailable. Discover their current schemas with getTools before calling them; this list grants no permissions.\n${this.escapeXmlContent(JSON.stringify(options.deferredToolSelectors))}\n</previous_tools_pending_discovery>`);
+    }
 
     return sections.length > 0 ? sections.join('\n') : null;
   }
@@ -716,6 +726,7 @@ Start with the entrypoint and load deeper guide files selectively.
 
     prompt += '</frontier_records>\n';
     prompt += '<instruction>Treat this block as compressed prior conversation context. Use it to maintain continuity across older work, but rely on the live conversation for the most recent turns.</instruction>\n';
+    prompt += '<history_recovery>Earlier conversation remains stored. When a detail, decision, constraint or tool result is missing or uncertain, search before guessing. Use search memory with memoryTypes ["conversations"], the current workspace and --session-name set to the current session name or ID; --window-size 3 returns surrounding turns. Search distinctive words, paths or phrases from the checkpoint. For older tool activity use memoryTypes ["traces"]. The recovery schema is prioritized in preloaded_tools; if absent, discover it with getTools. Inspect returned evidence before claiming recovery. Conversation search requires an available conversation index; if search is unavailable or finds no match, say so instead of inventing missing history.</history_recovery>\n';
     prompt += '</compaction_context>';
     return prompt;
   }
@@ -727,7 +738,11 @@ Start with the entrypoint and load deeper guide files selectively.
     const renderedAncestry = ancestry.slice(0, 3);
 
     let prompt = `  <record index="${index}" compacted_at="${record.compactedAt}" level="${record.level ?? 0}" merged_records="${record.mergedRecordCount ?? 1}">\n`;
-    prompt += `    <summary>${this.escapeXmlContent(record.summary)}</summary>\n`;
+    if (record.savedState) {
+      prompt += `    <saved_state>${this.escapeXmlContent(JSON.stringify(record.savedState, null, 2))}</saved_state>\n`;
+    } else {
+      prompt += `    <summary>${this.escapeXmlContent(record.summary)}</summary>\n`;
+    }
 
     if (files.length > 0) {
       const remainingFiles = record.filesReferenced.length - files.length;
