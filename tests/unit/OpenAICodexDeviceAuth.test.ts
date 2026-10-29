@@ -64,4 +64,36 @@ describe('OpenAICodexDeviceAuth', () => {
     await expect(new OpenAICodexDeviceAuth().start(jest.fn()))
       .rejects.toThrow();
   });
+  it('treats HTTP 404 during polling as pending and continues until approval', async () => {
+    mockRequestUrl
+      .mockResolvedValueOnce(reply(200, { device_auth_id: 'device-id', user_code: 'ABCD-1234', interval: 0 }))
+      .mockResolvedValueOnce(reply(404))
+      .mockResolvedValueOnce(reply(200, { authorization_code: 'auth-code', code_verifier: 'verifier', code_challenge: 'challenge' }))
+      .mockResolvedValueOnce(reply(200, { access_token: 'access', refresh_token: 'refresh', id_token: token(), expires_in: 3600 }));
+
+    const result = await new OpenAICodexDeviceAuth().start(jest.fn());
+    expect(result.apiKey).toBe('access');
+    expect(mockRequestUrl).toHaveBeenCalledTimes(4);
+  }, 10000);
+
+  it('rejects invalid approval data without attempting token exchange', async () => {
+    mockRequestUrl
+      .mockResolvedValueOnce(reply(200, { device_auth_id: 'device-id', user_code: 'ABCD-1234', interval: 0 }))
+      .mockResolvedValueOnce(reply(200, { authorization_code: 'auth-code' }));
+
+    await expect(new OpenAICodexDeviceAuth().start(jest.fn()))
+      .rejects.toThrow('invalid approval');
+    expect(mockRequestUrl).toHaveBeenCalledTimes(2);
+  }, 10000);
+
+  it('stops polling on unexpected server errors', async () => {
+    mockRequestUrl
+      .mockResolvedValueOnce(reply(200, { device_auth_id: 'device-id', user_code: 'ABCD-1234', interval: 0 }))
+      .mockResolvedValueOnce(reply(500, { error: 'server error' }));
+
+    await expect(new OpenAICodexDeviceAuth().start(jest.fn()))
+      .rejects.toThrow();
+    expect(mockRequestUrl).toHaveBeenCalledTimes(2);
+  }, 10000);
+
 });
