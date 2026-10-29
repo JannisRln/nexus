@@ -200,7 +200,8 @@ export class ProvidersTab {
             }, this.services.app.vault);
         }
 
-        // Attach OAuth configs to providers that support it (desktop only)
+        // Desktop OAuth uses a localhost callback server. Keep it disabled on mobile.
+        // Mobile can use an existing Codex OAuth session synchronized from desktop.
         if (isDesktop()) {
             this.attachOAuthConfigs();
         }
