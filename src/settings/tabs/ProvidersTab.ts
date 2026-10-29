@@ -759,7 +759,7 @@ export class ProvidersTab {
             config: { ...providerConfig },
             oauthConfig: displayConfig.oauthConfig,
             secondaryOAuthProvider,
-            oauthOnly: providerId === 'github-copilot',
+            oauthOnly: providerId === 'github-copilot' || providerId === 'openai-codex',
             onSave: async (updatedConfig: LLMProviderConfig) => {
                 await this.persistProviderConfig(settings, providerId, updatedConfig, displayConfig.name);
             }
