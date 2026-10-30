@@ -13,7 +13,7 @@ This change enables the built-in Codex provider on mobile and adds ChatGPT devic
 ## Verification and limitations
 
 - GitHub Actions PR checks (lint and Jest) passed on the development branch.
-- iPhone: device-code connection reported successful; UI tested manually. End-to-end inference and tool execution are not fully verified.
+- iPhone: device-code sign-in and Codex chat request/response were manually verified. Vault tool execution has not been fully verified.
 - **Android: not tested.** Android sign-in, browser hand-off, token persistence, and model/tool calls need real-device validation.
 - The mobile transport uses Obsidian requestUrl and buffers SSE; responses may not stream incrementally.
 - Device-code sign-in may depend on ChatGPT account settings.
