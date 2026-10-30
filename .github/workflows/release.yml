@@ -41,6 +41,9 @@ jobs:
           node -e "const v=require('./versions.json'); if(!v['$TAG']){console.error('::error::versions.json has no entry for $TAG');process.exit(1)}"
           node -e "const s=require('./schemas/manifest.json'); if(s.latest!=='$TAG'||!s.versions['$TAG']){console.error('::error::schema catalog is not generated for '+ '$TAG');process.exit(1)}"
 
+      - name: Generate versioned tool schemas
+        run: npm run schemas:release
+
       - name: Build release assets
         run: npm run build
 
