@@ -256,12 +256,13 @@ export class GenericProviderModal implements IProviderModal {
     link.setAttribute('target', '_blank');
     link.setAttribute('rel', 'noopener noreferrer');
 
-    const openBtn = linkRow.createEl('button', { text: 'Open link' });
+    const linkActions = linkRow.createDiv('oauth-device-code-actions');
+    const openBtn = linkActions.createEl('button', { text: 'Open link' });
     openBtn.addEventListener('click', () => {
       window.open(verificationUri, '_blank');
     });
 
-    const copyLinkBtn = linkRow.createEl('button', { text: 'Copy link' });
+    const copyLinkBtn = linkActions.createEl('button', { text: 'Copy link' });
     copyLinkBtn.addEventListener('click', () => {
       void navigator.clipboard.writeText(verificationUri).then(() => {
         copyLinkBtn.textContent = 'Copied!';
